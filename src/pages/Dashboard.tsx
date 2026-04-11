@@ -50,7 +50,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {showUpload && (
           <div className="flex-1 flex items-center justify-center p-6">
             <FileUpload />

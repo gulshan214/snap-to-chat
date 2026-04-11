@@ -43,7 +43,7 @@ const ChatPanel = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
       {/* Chat header */}
       <div className="h-14 bg-chat-header border-b border-border flex items-center px-4 shrink-0">
         <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center mr-3">
