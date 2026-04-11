@@ -6,6 +6,7 @@ export interface ChatMessage {
   timestamp: Date;
   mediaType?: string;
   mediaUrl?: string;
+  isSender: boolean;
 }
 
 export interface MonthGroup {
@@ -54,6 +55,8 @@ function parseSnapchatData(data: unknown, username: string): MonthGroup[] {
           const content = (msg['Content'] || msg['content'] || msg['Text'] || msg['text'] || msg['message'] || msg['body'] || '') as string;
           const timestamp = msg['Created'] || msg['created'] || msg['timestamp'] || msg['date'] || msg['created_at'] || msg['Created Date'] || '';
           const mediaType = (msg['Media Type'] || msg['media_type'] || msg['type'] || '') as string;
+          const isSenderRaw = msg['IsSender'] ?? msg['is_sender'] ?? msg['isSender'];
+          const isSenderBool = typeof isSenderRaw === 'boolean' ? isSenderRaw : undefined;
 
           if (sender || recipient) {
             const involvedWithUser =
@@ -66,6 +69,7 @@ function parseSnapchatData(data: unknown, username: string): MonthGroup[] {
                 content: content as string,
                 timestamp: new Date(timestamp as string),
                 mediaType: mediaType as string,
+                isSender: isSenderBool ?? sender.toLowerCase() === username.toLowerCase(),
               });
             }
           }
