@@ -10,8 +10,8 @@ export interface ChatMessage {
 }
 
 export interface MonthGroup {
-  key: string; // "March_2026"
-  label: string; // "March 2026"
+  key: string;
+  label: string;
   messages: ChatMessage[];
   lastMessage: ChatMessage;
 }
@@ -22,7 +22,8 @@ interface ChatState {
   selectedUser: string | null;
   monthGroups: MonthGroup[];
   activeMonth: string | null;
-  searchQuery: string;
+  searchQuery: string;           // used by sidebar to filter month labels
+  messageSearchQuery: string;    // ✅ NEW: used by ChatPanel to search within messages
   isProcessing: boolean;
   fileName: string | null;
 
@@ -30,77 +31,82 @@ interface ChatState {
   selectUser: (username: string) => void;
   setActiveMonth: (monthKey: string) => void;
   setSearchQuery: (query: string) => void;
+  setMessageSearchQuery: (query: string) => void; // ✅ NEW
   reset: () => void;
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
 ];
 
-function parseSnapchatData(data: unknown, username: string): MonthGroup[] {
+function parseSnapchatData(data: Record<string, unknown>, username: string): MonthGroup[] {
   const messages: ChatMessage[] = [];
 
-  // Try multiple common Snapchat export structures
-  const tryExtract = (obj: unknown): void => {
-    if (!obj || typeof obj !== 'object') return;
+  const getRawArray = (): unknown[] => {
+    if (Array.isArray(data[username])) {
+      return data[username] as unknown[];
+    }
 
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        if (item && typeof item === 'object') {
-          const msg = item as Record<string, unknown>;
-          // Check if this message involves the selected user
-          const sender = (msg['From'] || msg['from'] || msg['Sender'] || msg['sender'] || msg['sender_name'] || '') as string;
-          const recipient = (msg['To'] || msg['to'] || msg['Recipient'] || msg['recipient'] || '') as string;
-          const content = (msg['Content'] || msg['content'] || msg['Text'] || msg['text'] || msg['message'] || msg['body'] || '') as string;
-          const timestamp = msg['Created'] || msg['created'] || msg['timestamp'] || msg['date'] || msg['created_at'] || msg['Created Date'] || '';
-          const mediaType = (msg['Media Type'] || msg['media_type'] || msg['type'] || '') as string;
-          const isSenderRaw = msg['IsSender'] ?? msg['is_sender'] ?? msg['isSender'];
-          const isSenderBool = typeof isSenderRaw === 'boolean' ? isSenderRaw : undefined;
-
-          if (sender || recipient) {
-            const involvedWithUser =
-              sender.toLowerCase().includes(username.toLowerCase()) ||
-              recipient.toLowerCase().includes(username.toLowerCase());
-
-            if (involvedWithUser && (content || mediaType)) {
-              messages.push({
-                sender: sender as string,
-                content: content as string,
-                timestamp: new Date(timestamp as string),
-                mediaType: mediaType as string,
-                isSender: isSenderBool ?? sender.toLowerCase() === username.toLowerCase(),
-              });
-            }
-          }
-        }
+    const lowerUsername = username.toLowerCase();
+    for (const [key, value] of Object.entries(data)) {
+      if (key.toLowerCase() === lowerUsername && Array.isArray(value)) {
+        return value as unknown[];
       }
-      return;
     }
 
-    // Recurse into object values
-    for (const value of Object.values(obj as Record<string, unknown>)) {
-      tryExtract(value);
-    }
+    const all: unknown[] = [];
+    const collect = (obj: unknown): void => {
+      if (!obj || typeof obj !== 'object') return;
+      if (Array.isArray(obj)) { all.push(...obj); return; }
+      for (const v of Object.values(obj as Record<string, unknown>)) collect(v);
+    };
+    collect(data);
+    return all;
   };
 
-  tryExtract(data);
+  const rawArray = getRawArray();
 
-  // Sort chronologically
+  for (const item of rawArray) {
+    if (!item || typeof item !== 'object') continue;
+
+    const msg = item as Record<string, unknown>;
+
+    const sender       = (msg['From']    || msg['from']    || msg['Sender']    || msg['sender']    || msg['sender_name'] || '') as string;
+    const content      = (msg['Content'] || msg['content'] || msg['Text']      || msg['text']      || msg['message']     || msg['body'] || '') as string;
+    const timestampRaw = msg['Created']  || msg['created'] || msg['timestamp'] || msg['date']      || msg['created_at']  || msg['Created Date'] || '';
+    const mediaType    = (msg['Media Type'] || msg['media_type'] || msg['type'] || '') as string;
+
+    const isSenderRaw  = msg['IsSender'] ?? msg['is_sender'] ?? msg['isSender'];
+    const isSender: boolean = typeof isSenderRaw === 'boolean' ? isSenderRaw : false;
+
+    if (!content && !mediaType) continue;
+    if (mediaType === 'STATUSERASEDMESSAGE' && !content) continue;
+
+    messages.push({
+      sender,
+      content,
+      timestamp: new Date(timestampRaw as string),
+      mediaType,
+      isSender,
+    });
+  }
+
   messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-  // Group by month+year
   const groups = new Map<string, ChatMessage[]>();
+
   for (const msg of messages) {
     if (isNaN(msg.timestamp.getTime())) continue;
     const month = MONTH_NAMES[msg.timestamp.getMonth()];
-    const year = msg.timestamp.getFullYear();
-    const key = `${month}_${year}`;
+    const year  = msg.timestamp.getFullYear();
+    const key   = `${month}_${year}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(msg);
   }
 
   const monthGroups: MonthGroup[] = [];
+
   for (const [key, msgs] of groups) {
     const [month, year] = key.split('_');
     monthGroups.push({
@@ -111,8 +117,9 @@ function parseSnapchatData(data: unknown, username: string): MonthGroup[] {
     });
   }
 
-  // Sort groups by date (newest first for sidebar)
-  monthGroups.sort((a, b) => b.lastMessage.timestamp.getTime() - a.lastMessage.timestamp.getTime());
+  monthGroups.sort(
+    (a, b) => b.lastMessage.timestamp.getTime() - a.lastMessage.timestamp.getTime()
+  );
 
   return monthGroups;
 }
@@ -127,21 +134,18 @@ function extractUsernames(data: unknown): string[] {
       for (const item of obj) {
         if (item && typeof item === 'object') {
           const msg = item as Record<string, unknown>;
-          const sender = (msg['From'] || msg['from'] || msg['Sender'] || msg['sender'] || msg['sender_name'] || '') as string;
-          const recipient = (msg['To'] || msg['to'] || msg['Recipient'] || msg['recipient'] || '') as string;
-          if (sender) usernames.add(sender);
+          const sender    = (msg['From'] || msg['from'] || msg['Sender'] || msg['sender'] || msg['sender_name'] || '') as string;
+          const recipient = (msg['To']   || msg['to']   || msg['Recipient'] || msg['recipient'] || '') as string;
+          if (sender)    usernames.add(sender);
           if (recipient) usernames.add(recipient);
         }
       }
       return;
     }
 
-    // Also check object keys as potential usernames/chat names
     const objRecord = obj as Record<string, unknown>;
     for (const [key, value] of Object.entries(objRecord)) {
-      if (Array.isArray(value) && value.length > 0) {
-        usernames.add(key);
-      }
+      if (Array.isArray(value) && value.length > 0) usernames.add(key);
       extract(value);
     }
   };
@@ -151,37 +155,61 @@ function extractUsernames(data: unknown): string[] {
 }
 
 export const useChatStore = create<ChatState>()((set, get) => ({
-  rawData: null,
-  availableUsers: [],
-  selectedUser: null,
-  monthGroups: [],
-  activeMonth: null,
-  searchQuery: '',
-  isProcessing: false,
-  fileName: null,
+  rawData:             null,
+  availableUsers:      [],
+  selectedUser:        null,
+  monthGroups:         [],
+  activeMonth:         null,
+  searchQuery:         '',
+  messageSearchQuery:  '',   // ✅ NEW
+  isProcessing:        false,
+  fileName:            null,
 
   setRawData: (data, fileName) => {
     const users = extractUsernames(data);
-    set({ rawData: data as Record<string, unknown>, availableUsers: users, fileName, selectedUser: null, monthGroups: [], activeMonth: null });
+    set({
+      rawData: data as Record<string, unknown>,
+      availableUsers: users,
+      fileName,
+      selectedUser:       null,
+      monthGroups:        [],
+      activeMonth:        null,
+      messageSearchQuery: '',  // ✅ clear on new file
+    });
   },
 
   selectUser: (username) => {
-    set({ isProcessing: true });
-    // Use setTimeout so UI can show loading state
+    // ✅ Clear message search when switching conversations
+    set({ isProcessing: true, messageSearchQuery: '' });
+
     setTimeout(() => {
       const { rawData } = get();
       if (!rawData) return;
-      const groups = parseSnapchatData(rawData, username);
+
+      const groups = parseSnapchatData(rawData as Record<string, unknown>, username);
+
       set({
         selectedUser: username,
-        monthGroups: groups,
-        activeMonth: groups[0]?.key || null,
+        monthGroups:  groups,
+        activeMonth:  groups[0]?.key || null,
         isProcessing: false,
       });
     }, 50);
   },
 
-  setActiveMonth: (monthKey) => set({ activeMonth: monthKey }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  reset: () => set({ rawData: null, availableUsers: [], selectedUser: null, monthGroups: [], activeMonth: null, searchQuery: '', fileName: null }),
+  setActiveMonth:         (monthKey) => set({ activeMonth: monthKey }),
+  setSearchQuery:         (query)    => set({ searchQuery: query }),
+  setMessageSearchQuery:  (query)    => set({ messageSearchQuery: query }), // ✅ NEW
+
+  reset: () =>
+    set({
+      rawData:            null,
+      availableUsers:     [],
+      selectedUser:       null,
+      monthGroups:        [],
+      activeMonth:        null,
+      searchQuery:        '',
+      messageSearchQuery: '',
+      fileName:           null,
+    }),
 }));

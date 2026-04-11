@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { MessageSquare, Upload, Eye, ArrowRight } from 'lucide-react';
@@ -14,10 +14,10 @@ const Landing = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  if (isAuthenticated) {
-    navigate('/dashboard');
-    return null;
-  }
+  // ✅ FIXED: navigate must be inside useEffect, not called during render
+  useEffect(() => {
+    if (isAuthenticated) navigate('/dashboard');
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +32,7 @@ const Landing = () => {
       if (!name) { setError('Please enter your name'); return; }
       signup(email, name, password);
     }
-    navigate('/dashboard');
+    // navigate happens automatically via the useEffect above
   };
 
   return (
@@ -56,7 +56,7 @@ const Landing = () => {
           <div className="space-y-4">
             {[
               { icon: Upload, text: 'Upload your Snapchat JSON export' },
-              { icon: Eye, text: 'Select a conversation to view' },
+              { icon: Eye,    text: 'Select a conversation to view' },
               { icon: MessageSquare, text: 'Browse chats in WhatsApp-style UI' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3 text-secondary-foreground">
