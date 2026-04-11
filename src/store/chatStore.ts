@@ -58,20 +58,20 @@ function parseSnapchatData(data: unknown, username: string): MonthGroup[] {
           const isSenderRaw = msg['IsSender'] ?? msg['is_sender'] ?? msg['isSender'];
           const isSenderBool = typeof isSenderRaw === 'boolean' ? isSenderRaw : undefined;
 
-          // If IsSender field exists, this message is part of the selected conversation — don't filter it
-          const hasIsSender = isSenderBool !== undefined;
-          const involvedWithUser = hasIsSender ||
-            sender.toLowerCase().includes(username.toLowerCase()) ||
-            recipient.toLowerCase().includes(username.toLowerCase());
+          if (sender || recipient) {
+            const involvedWithUser =
+              sender.toLowerCase().includes(username.toLowerCase()) ||
+              recipient.toLowerCase().includes(username.toLowerCase());
 
-          if (involvedWithUser && (content || mediaType)) {
-            messages.push({
-              sender: sender as string,
-              content: content as string,
-              timestamp: new Date(timestamp as string),
-              mediaType: mediaType as string,
-              isSender: isSenderBool ?? sender.toLowerCase() === username.toLowerCase(),
-            });
+            if (involvedWithUser && (content || mediaType)) {
+              messages.push({
+                sender: sender as string,
+                content: content as string,
+                timestamp: new Date(timestamp as string),
+                mediaType: mediaType as string,
+                isSender: isSenderBool ?? sender.toLowerCase() === username.toLowerCase(),
+              });
+            }
           }
         }
       }
