@@ -67,7 +67,7 @@ const ChatPanel = () => {
             </div>
 
             {day.messages.map((msg, mi) => {
-              const isSent = msg.sender.toLowerCase() === selectedUser?.toLowerCase();
+              const isSent = msg.isSender;
               return (
                 <div
                   key={`${di}-${mi}`}
