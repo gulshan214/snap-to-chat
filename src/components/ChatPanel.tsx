@@ -9,6 +9,15 @@ const ChatPanel = () => {
 
   const activeGroup = monthGroups.find((g) => g.key === activeMonth);
 
+  // Debug: verify all messages are present
+  if (activeGroup) {
+    console.log('Total messages in active month:', activeGroup.messages.length);
+    console.log('IsSender counts:', {
+      sent: activeGroup.messages.filter(m => m.isSender).length,
+      received: activeGroup.messages.filter(m => !m.isSender).length,
+    });
+  }
+
   // Group messages by day for date separators
   const dayGroups = useMemo(() => {
     if (!activeGroup) return [];
