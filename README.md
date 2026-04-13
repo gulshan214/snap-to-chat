@@ -18,8 +18,6 @@ Got tons of Snapchat messages but no way to search or browse them easily?
 ##  Privacy
 We **do NOT store your chats**. Your data stays yours.
 
----
-
 Relive your memories, without the mess.
 
 ## Technical Details
@@ -52,4 +50,3 @@ Relive your memories, without the mess.
 - Frontend hosted on Vercel
 - Backend can be deployed on platforms like Render or Railway
 
----
