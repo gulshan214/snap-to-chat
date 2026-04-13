@@ -1,15 +1,23 @@
-# Welcome to Snap-to-Chat
+#  Snap-to-Chat
 
-have tons of snapchat chats which you can not view due to lots of chats and no features in snap to search in chats??
+Rediscover your Snapchat chats — the smart way.
 
-We have a solution!!!
+Got tons of Snapchat messages but no way to search or browse them easily?  
+**Snap-to-Chat** turns your raw data into a clean, searchable chat experience.
 
-Just upload your chats in json format (take snap data backup) and boom!
+##  How it works
+1. Download your Snapchat data (JSON)
+2. Upload it here
+3. Done 🎉
 
-Your chats are now- 
+##  Features
+- 📅 Chats organized by month  
+- 🔍 Search messages instantly  
+- 💬 Clean, readable chat UI  
 
-- Seperated with months
-- Search in chat features available
-- Enjoy looking at your long lost chats!
+##  Privacy
+We **do NOT store your chats**. Your data stays yours.
 
-AND NO WE DON'T STORE YOUR CHATS IN OUR SERVER xP
+---
+
+Relive your memories, without the mess 💙
