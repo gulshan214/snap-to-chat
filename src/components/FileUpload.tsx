@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Upload, FileJson, Loader2 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
-import { Button } from '@/components/ui/button';
 
 const FileUpload = () => {
   const { setRawData } = useChatStore();
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,12 +21,13 @@ const FileUpload = () => {
       const text = await file.text();
       const data = JSON.parse(text);
       setRawData(data, file.name);
+      navigate('/dashboard');
     } catch {
       setError('Failed to parse JSON file. Please check the file format.');
     } finally {
       setIsLoading(false);
     }
-  }, [setRawData]);
+  }, [setRawData, navigate]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -40,8 +42,8 @@ const FileUpload = () => {
   }, [processFile]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
-      <div className="max-w-md w-full text-center">
+    <div className="flex flex-col items-center animate-fade-in w-full">
+      <div className="w-full text-center">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
           <FileJson className="w-8 h-8 text-primary" />
         </div>

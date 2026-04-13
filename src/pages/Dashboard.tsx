@@ -1,29 +1,24 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
-import { LogOut, MessageSquare } from 'lucide-react';
-import FileUpload from '@/components/FileUpload';
+import { MessageSquare } from 'lucide-react';
 import UserSelector from '@/components/UserSelector';
 import ChatSidebar from '@/components/ChatSidebar';
 import ChatPanel from '@/components/ChatPanel';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuthStore();
-  const { rawData, selectedUser, availableUsers } = useChatStore();
+  const { rawData, selectedUser, availableUsers, reset } = useChatStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/');
-  }, [isAuthenticated, navigate]);
-
-  if (!isAuthenticated) return null;
-
-  const showUpload = !rawData;
   const showUserSelect = rawData && !selectedUser && availableUsers.length > 0;
   const showChat = rawData && selectedUser;
+
+  const handleBack = () => {
+    navigate('/');
+    reset();
+  };
 
   return (
     <div className="h-screen flex flex-col">
@@ -33,30 +28,18 @@ const Dashboard = () => {
           <MessageSquare className="w-5 h-5 text-primary" />
           <span className="font-semibold text-sm">SnapChat Viewer</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {user?.email}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { logout(); navigate('/'); }}
-            className="text-muted-foreground hover:text-foreground gap-1.5 h-8"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="text-muted-foreground hover:text-foreground h-8 text-xs"
+        >
+          ← Back
+        </Button>
       </header>
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {showUpload && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <FileUpload />
-          </div>
-        )}
-
         {showUserSelect && (
           <div className="flex-1 flex items-center justify-center p-6">
             <UserSelector />
@@ -65,7 +48,6 @@ const Dashboard = () => {
 
         {showChat && (
           <>
-            {/* Sidebar toggle for mobile */}
             <div
               className={`${
                 sidebarOpen ? 'w-80' : 'w-0'
