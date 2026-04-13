@@ -1,8 +1,9 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react';
 import { useChatStore } from '@/store/chatStore';
 import { format, isSameDay } from 'date-fns';
-import { MessageSquare, Search, X } from 'lucide-react';
+import { MessageSquare, Search, X, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { openChatSidebar } from '@/components/ChatSidebar';
 
 // ─── Highlight helper ────────────────────────────────────────────────────────
 // Splits text around every case-insensitive match and wraps matches in <mark>.
@@ -150,25 +151,32 @@ const ChatPanel = () => {
 
       {/* ── Chat header ── */}
       <div className="bg-chat-header border-b border-border shrink-0">
-        {/* Top row: icon + title + message count */}
+        {/* Top row: hamburger (mobile) + icon + title + message count */}
         <div className="h-14 flex items-center px-4 gap-3">
+          {/* Hamburger — mobile only, integrated naturally into the header */}
+          <button
+            onClick={openChatSidebar}
+            className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-white/10 transition-colors shrink-0 -ml-1"
+            aria-label="Open sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <MessageSquare className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate">{selectedUser}</h3>
             {isSearching ? (
-              <h3 className="font-semibold text-sm">
+              <p className="text-xs text-muted-foreground">
                 {totalMatches === 0
                   ? 'No results'
-                  : `${totalMatches} result${totalMatches !== 1 ? 's' : ''} across all months`}
-              </h3>
+                  : `${totalMatches} result${totalMatches !== 1 ? 's' : ''}`}
+              </p>
             ) : (
-              <>
-                <h3 className="font-semibold text-sm">{activeGroup!.label}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {activeGroup!.messages.length} messages
-                </p>
-              </>
+              <p className="text-xs text-muted-foreground">
+                {activeGroup!.label} · {activeGroup!.messages.length} messages
+              </p>
             )}
           </div>
         </div>
